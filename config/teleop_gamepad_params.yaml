@@ -1,0 +1,39 @@
+go2w_teleop_gamepad_node:
+  ros__parameters:
+    # Maximum velocities (m/s for linear, rad/s for angular)
+    max_vx: 1.0
+    max_vy: 0.6
+    max_wz: 1.5
+
+    # Speed scale factors (normal vs RT-trigger boost)
+    speed_scale_normal: 1.0
+    speed_scale_boost: 1.5
+
+    # Safety: if no Joy message for this duration, publish StopMove
+    timeout_ms: 500
+
+    # Minimum time between repeated TRIGGER actions for the same button (ms)
+    action_debounce_ms: 300
+
+    # RT trigger axis must exceed this threshold (0-1 normalized) for boost
+    boost_threshold: 0.5
+
+    # When true, log commands instead of publishing (safe testing)
+    dry_run: false
+
+    # ── F710 XInput axis/button indices (switch set to X, light OFF) ──────
+    # Override these if using a different gamepad or if indices differ.
+    axis_lx: 0        # Left stick horizontal
+    axis_ly: 1        # Left stick vertical (inverted: forward = -1.0)
+    axis_rx: 3        # Right stick horizontal
+    axis_rt: 5        # RT trigger (rest = -1.0, pressed = +1.0)
+    axis_dpad_y: 7    # D-pad vertical (up = +1.0, down = -1.0)
+
+    button_a: 0       # A — RecoveryStand
+    button_b: 1       # B — StandDown
+    button_x: 2       # X — BalanceStand
+    button_y: 3       # Y — HandStand (HOLD)
+    button_lb: 4      # LB — Deadman switch
+    button_rb: 5      # RB — SpeedLevel cycle
+    button_back: 6    # Back — Avoidance toggle
+    button_start: 7   # Start — Damp (e-stop, no deadman)
