@@ -26,6 +26,8 @@ services:
       - ROS_DOMAIN_ID=0
       # Pin CycloneDDS to the robot's internal Ethernet interface
       - CYCLONEDDS_URI=<CycloneDDS><Domain><General><Interfaces><NetworkInterface name="eth0" priority="default" multicast="default" /></Interfaces></General></Domain></CycloneDDS>
+      # Passed to entrypoint.sh for wait-for-device (supports gamepad hotplug)
+      - DEVICE_ID=${DEVICE_ID:-0}
 
     # Mount host input devices so joy_node can read the gamepad
     volumes:

@@ -24,16 +24,13 @@ go2w_teleop_gamepad_node:
     # ── F710 XInput axis/button indices (switch set to X, light OFF) ──────
     # Override these if using a different gamepad or if indices differ.
     axis_lx: 0        # Left stick horizontal
-    axis_ly: 1        # Left stick vertical (inverted: forward = -1.0)
+    axis_ly: 1        # Left stick vertical
     axis_rx: 3        # Right stick horizontal
     axis_rt: 5        # RT trigger (rest = -1.0, pressed = +1.0)
-    axis_dpad_y: 7    # D-pad vertical (up = +1.0, down = -1.0)
 
     button_a: 0       # A — RecoveryStand
     button_b: 1       # B — StandDown
-    button_x: 2       # X — BalanceStand
-    button_y: 3       # Y — HandStand (HOLD)
+    button_x: 2       # X — StandUp
     button_lb: 4      # LB — Deadman switch
     button_rb: 5      # RB — SpeedLevel cycle
-    button_back: 6    # Back — Avoidance toggle
     button_start: 7   # Start — Damp (e-stop, no deadman)

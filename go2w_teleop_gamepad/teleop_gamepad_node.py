@@ -22,44 +22,28 @@ import time
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Joy
-from unitree_api.msg import Request
+from unitree_api.msg import Request, Response
 
-# ── Unitree Sport API IDs ─────────────────────────────────────────────────────
+# ── Unitree Sport API IDs (GO2-W compatible subset) ───────────────────────────
 API_DAMP = 1001
-API_BALANCE_STAND = 1002
 API_STOP_MOVE = 1003
+API_STAND_UP = 1004
 API_STAND_DOWN = 1005
 API_RECOVERY_STAND = 1006
 API_MOVE = 1008
 API_SPEED_LEVEL = 1015
-API_STATIC_WALK = 1061
-API_TROT_RUN = 1062
-API_HANDSTAND = 2044
-API_FREE_WALK = 2045
-API_FREE_AVOID = 2048
-
-# ── Gait cycle ────────────────────────────────────────────────────────────────
-GAIT_CYCLE = [
-    ("TrotRun", API_TROT_RUN),
-    ("StaticWalk", API_STATIC_WALK),
-    ("FreeWalk", API_FREE_WALK),
-]
 
 # ── F710 XInput defaults (mode 1, light off) ─────────────────────────────────
-# Reference: unitree_sdk2_python/unitree_sdk2py/utils/joystick.py:216-251
 DEFAULT_AXIS_LX = 0
-DEFAULT_AXIS_LY = 1       # inverted: push forward = -1.0
+DEFAULT_AXIS_LY = 1
 DEFAULT_AXIS_RX = 3
 DEFAULT_AXIS_RT = 5        # rest = -1.0, full press = +1.0
-DEFAULT_AXIS_DPAD_Y = 7   # up = +1.0, down = -1.0
 
 DEFAULT_BTN_A = 0
 DEFAULT_BTN_B = 1
 DEFAULT_BTN_X = 2
-DEFAULT_BTN_Y = 3
 DEFAULT_BTN_LB = 4
 DEFAULT_BTN_RB = 5
-DEFAULT_BTN_BACK = 6
 DEFAULT_BTN_START = 7
 
 
@@ -85,16 +69,13 @@ class TeleopGamepadNode(Node):
         self._ax_ly = self.declare_parameter("axis_ly", DEFAULT_AXIS_LY).value
         self._ax_rx = self.declare_parameter("axis_rx", DEFAULT_AXIS_RX).value
         self._ax_rt = self.declare_parameter("axis_rt", DEFAULT_AXIS_RT).value
-        self._ax_dpad_y = self.declare_parameter("axis_dpad_y", DEFAULT_AXIS_DPAD_Y).value
 
         # Button indices
         self._btn_a = self.declare_parameter("button_a", DEFAULT_BTN_A).value
         self._btn_b = self.declare_parameter("button_b", DEFAULT_BTN_B).value
         self._btn_x = self.declare_parameter("button_x", DEFAULT_BTN_X).value
-        self._btn_y = self.declare_parameter("button_y", DEFAULT_BTN_Y).value
         self._btn_lb = self.declare_parameter("button_lb", DEFAULT_BTN_LB).value
         self._btn_rb = self.declare_parameter("button_rb", DEFAULT_BTN_RB).value
-        self._btn_back = self.declare_parameter("button_back", DEFAULT_BTN_BACK).value
         self._btn_start = self.declare_parameter("button_start", DEFAULT_BTN_START).value
 
         if self._dry_run:
@@ -104,19 +85,17 @@ class TeleopGamepadNode(Node):
         # ── Publisher / Subscriber ────────────────────────────────────────────
         self._req_pub = self.create_publisher(Request, "/api/sport/request", 10)
         self._joy_sub = self.create_subscription(Joy, "/joy", self._on_joy, 10)
+        self._resp_sub = self.create_subscription(
+            Response, "/api/sport/response", self._on_response, 10)
 
         # ── Watchdog timer (5 Hz) ─────────────────────────────────────────────
         self._watchdog_timer = self.create_timer(0.2, self._watchdog_callback)
 
         # ── State ─────────────────────────────────────────────────────────────
         self._prev_buttons: list = []
-        self._prev_dpad_y: float = 0.0
         self._last_joy_time: float = 0.0
         self._deadman_was_active: bool = False
-        self._y_held: bool = False
         self._speed_level: int = 0
-        self._avoid_enabled: bool = False
-        self._gait_index: int = 0
         self._last_trigger: dict = {}  # button_index -> monotonic timestamp
         self._watchdog_fired: bool = False
 
@@ -145,11 +124,6 @@ class TeleopGamepadNode(Node):
             self._publish_or_log(
                 self._make_request(API_STOP_MOVE),
                 "StopMove (deadman released)")
-            if self._y_held:
-                self._y_held = False
-                self._publish_or_log(
-                    self._make_request(API_HANDSTAND, json.dumps({"data": False})),
-                    "HandStand(false) — deadman released")
 
         # ── With deadman held ─────────────────────────────────────────────────
         if deadman:
@@ -159,8 +133,8 @@ class TeleopGamepadNode(Node):
             rx = self._axis_val(axes, self._ax_rx)
             rt_raw = self._axis_val(axes, self._ax_rt)
 
-            # Invert LY: push forward = -1.0 from driver → we want positive
-            vx = -ly
+            # LY: push forward = positive on GO2-W Jetson driver
+            vx = ly
             vy = lx
             vyaw = rx
 
@@ -201,27 +175,11 @@ class TeleopGamepadNode(Node):
                     self._make_request(API_STAND_DOWN),
                     "StandDown (B)")
 
-            # X = BalanceStand
+            # X = StandUp
             if self._rising_debounced(buttons, self._btn_x, now):
                 self._publish_or_log(
-                    self._make_request(API_BALANCE_STAND),
-                    "BalanceStand (X)")
-
-            # Y = HandStand (HOLD)
-            y_now = self._btn_val(buttons, self._btn_y)
-            y_prev = self._btn_val(self._prev_buttons, self._btn_y)
-            if y_now and not y_prev:
-                self._y_held = True
-                self._publish_or_log(
-                    self._make_request(API_HANDSTAND,
-                                       json.dumps({"data": True})),
-                    "HandStand(true) — Y pressed")
-            elif not y_now and y_prev and self._y_held:
-                self._y_held = False
-                self._publish_or_log(
-                    self._make_request(API_HANDSTAND,
-                                       json.dumps({"data": False})),
-                    "HandStand(false) — Y released")
+                    self._make_request(API_STAND_UP),
+                    "StandUp (X)")
 
             # RB = SpeedLevel cycle
             if self._rising_debounced(buttons, self._btn_rb, now):
@@ -231,36 +189,9 @@ class TeleopGamepadNode(Node):
                                        json.dumps({"data": self._speed_level})),
                     f"SpeedLevel({self._speed_level}) (RB)")
 
-            # Back = Avoidance toggle
-            if self._rising_debounced(buttons, self._btn_back, now):
-                self._avoid_enabled = not self._avoid_enabled
-                self._publish_or_log(
-                    self._make_request(API_FREE_AVOID,
-                                       json.dumps({"data": self._avoid_enabled})),
-                    f"FreeAvoid({self._avoid_enabled}) (Back)")
-
-            # D-pad Y = gait cycle
-            dpad_y = self._axis_val(axes, self._ax_dpad_y)
-            prev_dpad_y = self._prev_dpad_y
-            if dpad_y > 0.5 and prev_dpad_y <= 0.5:
-                # D-pad up → next gait
-                self._gait_index = (self._gait_index + 1) % len(GAIT_CYCLE)
-                name, api_id = GAIT_CYCLE[self._gait_index]
-                self._publish_or_log(
-                    self._make_request(api_id),
-                    f"Gait: {name} (D-pad up)")
-            elif dpad_y < -0.5 and prev_dpad_y >= -0.5:
-                # D-pad down → prev gait
-                self._gait_index = (self._gait_index - 1) % len(GAIT_CYCLE)
-                name, api_id = GAIT_CYCLE[self._gait_index]
-                self._publish_or_log(
-                    self._make_request(api_id),
-                    f"Gait: {name} (D-pad down)")
-
         # ── Save state for next callback ──────────────────────────────────────
         self._deadman_was_active = deadman
         self._prev_buttons = buttons
-        self._prev_dpad_y = self._axis_val(axes, self._ax_dpad_y)
 
     # ── Watchdog ──────────────────────────────────────────────────────────────
     def _watchdog_callback(self) -> None:
@@ -272,13 +203,18 @@ class TeleopGamepadNode(Node):
             self._publish_or_log(
                 self._make_request(API_STOP_MOVE),
                 f"StopMove (watchdog: no Joy for {elapsed_ms:.0f}ms)")
-            if self._y_held:
-                self._y_held = False
-                self._publish_or_log(
-                    self._make_request(API_HANDSTAND,
-                                       json.dumps({"data": False})),
-                    "HandStand(false) — watchdog")
             self._deadman_was_active = False
+
+    # ── Sport API response ────────────────────────────────────────────────
+    def _on_response(self, msg: Response) -> None:
+        code = msg.header.status.code
+        api_id = msg.header.identity.api_id
+        if code != 0:
+            self.get_logger().warn(
+                f"Sport API rejected: api_id={api_id} code={code}")
+        else:
+            self.get_logger().debug(
+                f"Sport API accepted: api_id={api_id}")
 
     # ── Helpers ───────────────────────────────────────────────────────────────
     @staticmethod
@@ -338,13 +274,7 @@ class TeleopGamepadNode(Node):
             self._req_pub.publish(req)
 
     def destroy_node(self) -> None:
-        """Ensure HandStand is released and movement stopped on shutdown."""
-        if self._y_held:
-            self._y_held = False
-            req = self._make_request(API_HANDSTAND,
-                                     json.dumps({"data": False}))
-            self._req_pub.publish(req)
-            self.get_logger().info("Shutdown: HandStand(false)")
+        """Stop movement on shutdown."""
         stop = self._make_request(API_STOP_MOVE)
         self._req_pub.publish(stop)
         self.get_logger().info("Shutdown: StopMove")
@@ -370,9 +300,7 @@ class TeleopGamepadNode(Node):
             f"{B}{C}+----------------------------------------------------------------+{N}",
             f"{B}{C}|{N} {B}ACTIONS{N} (while holding LB, except Start)                      {B}{C}|{N}",
             f"{B}{C}|{N}   A = Recovery Stand       B = Stand Down                     {B}{C}|{N}",
-            f"{B}{C}|{N}   X = Balance Stand        Y = HandStand (HOLD)               {B}{C}|{N}",
-            f"{B}{C}|{N}   RB = Speed Level cycle   Back = Avoidance toggle             {B}{C}|{N}",
-            f"{B}{C}|{N}   D-pad up/down = gait cycle                                  {B}{C}|{N}",
+            f"{B}{C}|{N}   X = Stand Up             RB = Speed Level cycle             {B}{C}|{N}",
             f"{B}{C}|{N}   {R}Start = DAMP (e-stop, no deadman needed){N}                   {B}{C}|{N}",
             f"{B}{C}+----------------------------------------------------------------+{N}",
             f"{B}{C}|{N} {B}PARAMS{N}  vx={self._max_vx:.1f}  vy={self._max_vy:.1f}"
