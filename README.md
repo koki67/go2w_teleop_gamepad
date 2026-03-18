@@ -116,6 +116,62 @@ All parameters can be customized via the YAML config file ([`config/teleop_gamep
 
 Axis and button indices can also be remapped for other gamepads — see the YAML file for details.
 
+## Robot Deployment (Docker on Jetson Orin NX)
+
+The recommended way to run this package is directly on the robot's onboard Jetson Orin NX. This eliminates WiFi/DDS discovery issues — all communication stays local.
+
+### Prerequisites
+
+- F710 USB dongle plugged into the robot's USB-A port
+- Docker and Docker Compose installed on the Jetson
+- Clone this repo (or copy `ros2_ws/src/`) onto the Jetson
+
+### Build
+
+```bash
+cd ros2_ws/src
+docker compose -f go2w_teleop_gamepad/docker/docker-compose.yml build
+```
+
+### Run
+
+**Dry-run first** (safe testing):
+
+```bash
+DRY_RUN=true docker compose -f go2w_teleop_gamepad/docker/docker-compose.yml up
+```
+
+**Live** (sends commands to the robot):
+
+```bash
+docker compose -f go2w_teleop_gamepad/docker/docker-compose.yml up -d
+```
+
+**Check logs:**
+
+```bash
+docker logs -f go2w_teleop_gamepad
+```
+
+**Stop:**
+
+```bash
+docker compose -f go2w_teleop_gamepad/docker/docker-compose.yml down
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `DRY_RUN` | `false` | Set to `true` to log commands without publishing |
+| `DEVICE_ID` | `0` | Joystick device index (`/dev/input/js<N>`) |
+
+### Notes
+
+- The container uses `network_mode: host` and CycloneDDS pinned to `eth0` (the robot's internal network interface)
+- The container auto-restarts on failure (`restart: unless-stopped`)
+- The F710 dongle must be plugged in before starting the container
+
 ## License
 
 Apache-2.0

@@ -1,0 +1,45 @@
+# Docker Compose for go2w_teleop_gamepad — robot-side deployment.
+#
+# Run from ros2_ws/src/:
+#   docker compose -f go2w_teleop_gamepad/docker/docker-compose.yml up
+#
+# Or from this directory (context is relative to compose file location):
+#   docker compose up
+#
+# ENVIRONMENT VARIABLES (set on the host or in a .env file):
+#   DRY_RUN    — "true" or "false" (default: "false")
+#   DEVICE_ID  — joystick device index, e.g. "0" for /dev/input/js0 (default: "0")
+
+services:
+  teleop_gamepad:
+    build:
+      context: ../..
+      dockerfile: go2w_teleop_gamepad/docker/Dockerfile
+    image: go2w_teleop_gamepad:humble
+    container_name: go2w_teleop_gamepad
+
+    # Host network is mandatory for DDS multicast discovery
+    network_mode: host
+
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=0
+      # Pin CycloneDDS to the robot's internal Ethernet interface
+      - CYCLONEDDS_URI=<CycloneDDS><Domain><General><Interfaces><NetworkInterface name="eth0" priority="default" multicast="default" /></Interfaces></General></Domain></CycloneDDS>
+
+    # Mount host input devices so joy_node can read the gamepad
+    volumes:
+      - /dev/input:/dev/input:ro
+
+    # Allow access to input character devices (major 13) without --privileged
+    device_cgroup_rules:
+      - 'c 13:* rmw'
+
+    command: >
+      ros2 launch go2w_teleop_gamepad teleop_gamepad.launch.py
+      device_id:=${DEVICE_ID:-0}
+      dry_run:=${DRY_RUN:-false}
+
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
