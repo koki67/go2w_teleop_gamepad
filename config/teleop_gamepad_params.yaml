@@ -33,4 +33,5 @@ go2w_teleop_gamepad_node:
     button_x: 2       # X — StandUp
     button_lb: 4      # LB — Deadman switch
     button_rb: 5      # RB — SpeedLevel cycle
+    button_y: 3       # Y — SwitchGait cycle (Sports / Terrain / Climbing)
     button_start: 7   # Start — Damp (e-stop, no deadman)

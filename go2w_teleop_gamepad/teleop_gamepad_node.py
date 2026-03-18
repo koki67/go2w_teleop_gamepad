@@ -31,6 +31,7 @@ API_STAND_UP = 1004
 API_STAND_DOWN = 1005
 API_RECOVERY_STAND = 1006
 API_MOVE = 1008
+API_SWITCH_GAIT = 1011
 API_SPEED_LEVEL = 1015
 
 # ── F710 XInput defaults (mode 1, light off) ─────────────────────────────────
@@ -44,6 +45,7 @@ DEFAULT_BTN_B = 1
 DEFAULT_BTN_X = 2
 DEFAULT_BTN_LB = 4
 DEFAULT_BTN_RB = 5
+DEFAULT_BTN_Y = 3
 DEFAULT_BTN_START = 7
 
 
@@ -76,6 +78,7 @@ class TeleopGamepadNode(Node):
         self._btn_x = self.declare_parameter("button_x", DEFAULT_BTN_X).value
         self._btn_lb = self.declare_parameter("button_lb", DEFAULT_BTN_LB).value
         self._btn_rb = self.declare_parameter("button_rb", DEFAULT_BTN_RB).value
+        self._btn_y = self.declare_parameter("button_y", DEFAULT_BTN_Y).value
         self._btn_start = self.declare_parameter("button_start", DEFAULT_BTN_START).value
 
         if self._dry_run:
@@ -96,6 +99,12 @@ class TeleopGamepadNode(Node):
         self._last_joy_time: float = 0.0
         self._deadman_was_active: bool = False
         self._speed_level: int = 0
+        self._gaits = [
+            (0, "Sports"),
+            (1, "Terrain"),
+            (2, "Climbing"),
+        ]
+        self._gait_index: int = 0
         self._last_trigger: dict = {}  # button_index -> monotonic timestamp
         self._watchdog_fired: bool = False
 
@@ -188,6 +197,15 @@ class TeleopGamepadNode(Node):
                     self._make_request(API_SPEED_LEVEL,
                                        json.dumps({"data": self._speed_level})),
                     f"SpeedLevel({self._speed_level}) (RB)")
+
+            # Y = SwitchGait cycle
+            if self._rising_debounced(buttons, self._btn_y, now):
+                self._gait_index = (self._gait_index + 1) % len(self._gaits)
+                gait_val, name = self._gaits[self._gait_index]
+                self._publish_or_log(
+                    self._make_request(API_SWITCH_GAIT,
+                                       json.dumps({"data": gait_val})),
+                    f"SwitchGait \u2192 {name}({gait_val}) (Y)")
 
         # ── Save state for next callback ──────────────────────────────────────
         self._deadman_was_active = deadman
@@ -301,6 +319,7 @@ class TeleopGamepadNode(Node):
             f"{B}{C}|{N} {B}ACTIONS{N} (while holding LB, except Start)                      {B}{C}|{N}",
             f"{B}{C}|{N}   A = Recovery Stand       B = Stand Down                     {B}{C}|{N}",
             f"{B}{C}|{N}   X = Stand Up             RB = Speed Level cycle             {B}{C}|{N}",
+            f"{B}{C}|{N}   Y = Switch Gait cycle                                        {B}{C}|{N}",
             f"{B}{C}|{N}   {R}Start = DAMP (e-stop, no deadman needed){N}                   {B}{C}|{N}",
             f"{B}{C}+----------------------------------------------------------------+{N}",
             f"{B}{C}|{N} {B}PARAMS{N}  vx={self._max_vx:.1f}  vy={self._max_vy:.1f}"

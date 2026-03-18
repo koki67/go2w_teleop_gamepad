@@ -173,6 +173,7 @@ Hold **LB** (deadman switch) for all movement and actions. Releasing LB immediat
 | A | RecoveryStand — stand up from any position | 1006 |
 | B | StandDown — sit down | 1005 |
 | X | StandUp — switch to normal standing mode | 1004 |
+| Y | Cycle gait (Sports → Terrain → Climbing) | 1011 |
 | RB | Cycle speed level (0 / 1 / 2) | 1015 |
 
 ### Emergency Stop (no deadman required)
@@ -237,6 +238,7 @@ These can be overridden for gamepads with different axis/button indices. The def
 | `button_a` | `0` | A button — RecoveryStand |
 | `button_b` | `1` | B button — StandDown |
 | `button_x` | `2` | X button — StandUp |
+| `button_y` | `3` | Y button — SwitchGait cycle |
 | `button_lb` | `4` | LB button — deadman switch |
 | `button_rb` | `5` | RB button — speed level cycle |
 | `button_start` | `7` | Start button — Damp (e-stop) |
