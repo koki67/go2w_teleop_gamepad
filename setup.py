@@ -18,10 +18,10 @@ setup(
     ],
     install_requires=["setuptools"],
     zip_safe=True,
-    maintainer="go2w",
-    maintainer_email="todo@todo.com",
+    maintainer="Koki Tanaka",
+    maintainer_email="tanaka.koki.t6r@research.f-rei.go.jp",
     description="Gamepad teleoperation node for Unitree GO2-W.",
-    license="Apache-2.0",
+    license="BSD-3-Clause",
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [

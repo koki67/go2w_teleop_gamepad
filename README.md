@@ -319,4 +319,4 @@ go2w_teleop_gamepad/
 
 ## License
 
-Apache-2.0
+BSD-3-Clause — see [LICENSE](LICENSE).

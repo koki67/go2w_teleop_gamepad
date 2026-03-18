@@ -4,8 +4,8 @@
   <name>go2w_teleop_gamepad</name>
   <version>0.1.0</version>
   <description>Gamepad teleoperation node for Unitree GO2-W using Logitech F710 or any standard gamepad.</description>
-  <maintainer email="todo@todo.com">go2w</maintainer>
-  <license>Apache-2.0</license>
+  <maintainer email="tanaka.koki.t6r@research.f-rei.go.jp">Koki Tanaka</maintainer>
+  <license>BSD-3-Clause</license>
 
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>

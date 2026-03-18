@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Copyright 2024 go2w contributors
-# SPDX-License-Identifier: Apache-2.0
+# Copyright 2024 Koki Tanaka
+# SPDX-License-Identifier: BSD-3-Clause
 """
 go2w_teleop_gamepad — gamepad teleoperation for Unitree GO2-W.
 
