@@ -31,8 +31,28 @@ Two ROS 2 nodes run inside the container:
 
 - ROS 2 Humble
 - [`ros-humble-joy`](https://index.ros.org/p/joy/) — joystick driver
-- [`unitree_api`](https://github.com/unitreerobotics/unitree_ros2) — Unitree message definitions
+- [`unitree_api`](https://github.com/unitreerobotics/unitree_ros2) — Unitree message definitions (from `unitree_ros2`)
 - CycloneDDS RMW implementation
+
+### Development Environment
+
+This package depends on `unitree_api` message definitions from the [`unitree_ros2`](https://github.com/unitreerobotics/unitree_ros2) repository. The recommended way to develop and build is inside the [go2w-docker-dev](https://github.com/koki67/go2w-docker-dev) devcontainer, which provides ROS 2 Humble, CycloneDDS, and `unitree_ros2` pre-configured.
+
+**Setup:**
+
+```bash
+# 1. Clone the development environment
+git clone --recurse-submodules https://github.com/koki67/go2w-docker-dev.git
+cd go2w-docker-dev
+
+# 2. Clone this package into the ROS 2 workspace
+cd ros2_ws/src
+git clone https://github.com/koki67/go2w_teleop_gamepad.git
+
+# 3. Open in VS Code Dev Containers (or build manually)
+```
+
+For Docker deployment on the Jetson, `unitree_ros2` must be a sibling directory under `ros2_ws/src/` — the Dockerfile copies both packages into the image.
 
 ## Gamepad Setup
 
