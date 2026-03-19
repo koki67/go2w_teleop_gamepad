@@ -143,7 +143,8 @@ class TeleopGamepadNode(Node):
             rt_raw = self._axis_val(axes, self._ax_rt)
 
             # LY: push forward = positive on GO2-W Jetson driver
-            vx = ly
+            # Quadratic curve on forward/back for finer low-speed control
+            vx = ly * abs(ly)
             vy = lx
             vyaw = rx
 
