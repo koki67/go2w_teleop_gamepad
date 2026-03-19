@@ -88,20 +88,17 @@ This is the recommended way to run this package. Running on the robot's onboard 
 
 ```bash
 cd ros2_ws/src
-docker compose -f go2w_teleop_gamepad/docker/docker-compose.yml build
+./go2w_teleop_gamepad/docker/run.sh build
 ```
 
-> **Note:** On some Jetson setups the Docker client version is newer than the daemon. If you see `client version 1.53 is too new`, prefix all `docker` commands with:
-> ```bash
-> export DOCKER_API_VERSION=1.43
-> ```
+> **Note:** The `run.sh` wrapper automatically sets `DOCKER_API_VERSION=1.43` to avoid `client version X is too new` errors on Jetson setups where the Docker client is newer than the daemon. All `docker compose` commands below use this wrapper.
 
 ### Run
 
 **Step 1 — Dry-run first** (logs commands but sends nothing to the robot):
 
 ```bash
-DRY_RUN=true docker compose -f go2w_teleop_gamepad/docker/docker-compose.yml up
+DRY_RUN=true ./go2w_teleop_gamepad/docker/run.sh up
 ```
 
 Verify the banner appears and button presses show up in the logs. Press Ctrl+C to stop.
@@ -109,7 +106,7 @@ Verify the banner appears and button presses show up in the logs. Press Ctrl+C t
 **Step 2 — Live** (sends commands to the robot):
 
 ```bash
-docker compose -f go2w_teleop_gamepad/docker/docker-compose.yml up -d
+./go2w_teleop_gamepad/docker/run.sh up -d
 ```
 
 **Check logs:**
@@ -121,7 +118,7 @@ docker logs -f go2w_teleop_gamepad
 **Stop:**
 
 ```bash
-docker compose -f go2w_teleop_gamepad/docker/docker-compose.yml down
+./go2w_teleop_gamepad/docker/run.sh down
 ```
 
 ### Environment Variables
@@ -140,7 +137,7 @@ The Jetson Orin NX has only **one USB-A port**. The gamepad dongle does not need
 1. SSH into the Jetson (or connect a keyboard dongle to start a terminal)
 2. Start the container:
    ```bash
-   docker compose -f go2w_teleop_gamepad/docker/docker-compose.yml up -d
+   ./go2w_teleop_gamepad/docker/run.sh up -d
    ```
 3. Check the logs — you will see:
    ```
@@ -289,7 +286,7 @@ ros2 launch go2w_teleop_gamepad teleop_gamepad.launch.py
 | `joy_node` opens wrong device | Set `DEVICE_ID` (Docker) or `device_id` launch arg. Run `ls /dev/input/js*` to find the right index. |
 | Robot doesn't move | Make sure you are holding **LB** (deadman). Check `docker logs` for Sport API response errors. |
 | StandDown doesn't work | Execute **StandUp** (LB + X) at least once first. This is a Unitree SDK requirement. |
-| Docker: `client version too new` | `export DOCKER_API_VERSION=1.43` before running docker commands. |
+| Docker: `client version too new` | Use `docker/run.sh` wrapper (auto-sets `DOCKER_API_VERSION=1.43`). |
 | Container waiting forever for device | Verify the dongle is plugged in and `ls /dev/input/js*` shows a device on the **host**. |
 | DDS topics not visible | Ensure `network_mode: host` in docker-compose and CycloneDDS is pinned to `eth0`. |
 
