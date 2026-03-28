@@ -31,28 +31,12 @@ Two ROS 2 nodes run inside the container:
 
 - ROS 2 Humble
 - [`ros-humble-joy`](https://index.ros.org/p/joy/) — joystick driver
-- [`unitree_api`](https://github.com/unitreerobotics/unitree_ros2) — Unitree message definitions (from `unitree_ros2`)
+- [`unitree_api`](https://github.com/koki67/unitree_ros2) — Unitree message definitions (from `unitree_ros2`)
 - CycloneDDS RMW implementation
 
 ### Development Environment
 
-This package depends on `unitree_api` message definitions from the [`unitree_ros2`](https://github.com/unitreerobotics/unitree_ros2) repository. The recommended way to develop and build is inside the [go2w-docker-dev](https://github.com/koki67/go2w-docker-dev) devcontainer, which provides ROS 2 Humble, CycloneDDS, and `unitree_ros2` pre-configured.
-
-**Setup:**
-
-```bash
-# 1. Clone the development environment
-git clone --recurse-submodules https://github.com/koki67/go2w-docker-dev.git
-cd go2w-docker-dev
-
-# 2. Clone this package into the ROS 2 workspace
-cd ros2_ws/src
-git clone https://github.com/koki67/go2w_teleop_gamepad.git
-
-# 3. Open in VS Code Dev Containers (or build manually)
-```
-
-For Docker deployment on the Jetson, `unitree_ros2` must be a sibling directory under `ros2_ws/src/` — the Dockerfile copies both packages into the image.
+This package depends on `unitree_api` message definitions from [`unitree_ros2`](https://github.com/koki67/unitree_ros2). The Docker image clones and builds all dependencies automatically.
 
 ## Gamepad Setup
 
@@ -76,19 +60,17 @@ This is the recommended way to run this package. Running on the robot's onboard 
 ### Prerequisites
 
 - Docker and Docker Compose installed on the Jetson
-- This repository cloned onto the Jetson (with the `unitree_ros2` submodule):
+- This repository cloned onto the Jetson:
 
   ```bash
-  git clone https://github.com/koki67/go2w-docker-dev.git
-  cd go2w-docker-dev
-  git submodule update --init --recursive
+  git clone https://github.com/koki67/go2w_teleop_gamepad.git
+  cd go2w_teleop_gamepad
   ```
 
 ### Build the Docker Image
 
 ```bash
-cd ros2_ws/src
-./go2w_teleop_gamepad/docker/run.sh build
+./docker/run.sh build
 ```
 
 > **Note:** The `run.sh` wrapper automatically sets `DOCKER_API_VERSION=1.43` to avoid `client version X is too new` errors on Jetson setups where the Docker client is newer than the daemon. All `docker compose` commands below use this wrapper.
@@ -98,7 +80,7 @@ cd ros2_ws/src
 **Step 1 — Dry-run first** (logs commands but sends nothing to the robot):
 
 ```bash
-DRY_RUN=true ./go2w_teleop_gamepad/docker/run.sh up
+DRY_RUN=true ./docker/run.sh up
 ```
 
 Verify the banner appears and button presses show up in the logs. Press Ctrl+C to stop.
@@ -106,7 +88,7 @@ Verify the banner appears and button presses show up in the logs. Press Ctrl+C t
 **Step 2 — Live** (sends commands to the robot):
 
 ```bash
-./go2w_teleop_gamepad/docker/run.sh up -d
+./docker/run.sh up -d
 ```
 
 **Check logs:**
@@ -118,7 +100,7 @@ docker logs -f go2w_teleop_gamepad
 **Stop:**
 
 ```bash
-./go2w_teleop_gamepad/docker/run.sh down
+./docker/run.sh down
 ```
 
 ### Environment Variables
@@ -137,7 +119,7 @@ The Jetson Orin NX has only **one USB-A port**. The gamepad dongle does not need
 1. SSH into the Jetson (or connect a keyboard dongle to start a terminal)
 2. Start the container:
    ```bash
-   ./go2w_teleop_gamepad/docker/run.sh up -d
+   ./docker/run.sh up -d
    ```
 3. Check the logs — you will see:
    ```
@@ -252,7 +234,7 @@ Press buttons and move sticks to see which indices change.
 
 ## Native Build (without Docker)
 
-If you want to run directly on a machine with ROS 2 Humble installed (e.g. inside the go2w-docker-dev devcontainer):
+If you want to run directly on a machine with ROS 2 Humble installed (without Docker):
 
 ```bash
 cd ros2_ws

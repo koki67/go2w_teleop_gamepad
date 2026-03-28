@@ -13,8 +13,8 @@
 services:
   teleop_gamepad:
     build:
-      context: ../..
-      dockerfile: go2w_teleop_gamepad/docker/Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     image: go2w_teleop_gamepad:humble
     container_name: go2w_teleop_gamepad
 

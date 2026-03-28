@@ -4,8 +4,8 @@
 # Reads a Logitech F710 gamepad and publishes Sport API requests
 # directly to /api/sport/request via CycloneDDS.
 #
-# Build context must be ros2_ws/src/ (two levels above this file):
-#   docker build -f go2w_teleop_gamepad/docker/Dockerfile .
+# Build context is the repository root (one level above this file):
+#   docker build -f docker/Dockerfile .
 #
 # Or use the provided docker-compose.yml.
 
@@ -21,12 +21,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ros-humble-joy \
       # colcon build system
       python3-colcon-common-extensions \
+      git \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Copy source packages ──────────────────────────────────────────────────────
-# Build context = ros2_ws/src/
-COPY unitree_ros2         /ros2_ws/src/unitree_ros2
-COPY go2w_teleop_gamepad  /ros2_ws/src/go2w_teleop_gamepad
+# ── Clone unitree_ros2 for message definitions (unitree_api) ─────────────────
+RUN git clone --depth 1 https://github.com/koki67/unitree_ros2.git \
+      /ros2_ws/src/unitree_ros2 \
+    && rm -rf /ros2_ws/src/unitree_ros2/.git
+
+# ── Copy this package ─────────────────────────────────────────────────────────
+# Build context = repository root
+COPY . /ros2_ws/src/go2w_teleop_gamepad
 
 WORKDIR /ros2_ws
 
@@ -38,7 +43,7 @@ RUN /bin/bash -c "\
     "
 
 # ── Entrypoint ────────────────────────────────────────────────────────────────
-COPY go2w_teleop_gamepad/docker/entrypoint.sh /entrypoint.sh
+COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["ros2", "launch", "go2w_teleop_gamepad", "teleop_gamepad.launch.py"]
